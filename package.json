@@ -1,0 +1,55 @@
+{
+  "name": "whatsapp-scheduler",
+  "version": "1.0.0",
+  "description": "CLI tool to schedule WhatsApp messages",
+  "main": "dist/cli/index.js",
+  "bin": {
+    "wa-schedule": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "nodemon --watch src --exec ts-node src/cli/index.ts",
+    "start:cli": "node dist/cli/index.js",
+    "start:daemon": "node dist/daemon/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aaron1729/schedule-whatsapp-messages.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aaron1729/schedule-whatsapp-messages/issues"
+  },
+  "homepage": "https://github.com/aaron1729/schedule-whatsapp-messages#readme",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "chrono-node": "^2.9.0",
+    "commander": "^14.0.2",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "inquirer": "^8.2.7",
+    "nodemailer": "^7.0.12",
+    "puppeteer": "^24.34.0",
+    "qrcode-terminal": "^0.12.0",
+    "uuid": "^13.0.0",
+    "whatsapp-web.js": "^1.34.4",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^25.0.3",
+    "@types/nodemailer": "^7.0.4",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@types/uuid": "^10.0.0",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

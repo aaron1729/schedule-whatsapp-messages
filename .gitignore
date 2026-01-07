@@ -1,0 +1,44 @@
+# personal whatsapp data
+qr-code.txt
+list-chats.txt
+
+# User message files
+txt-messages/
+
+# claude
+.claude/
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.js
+*.js.map
+*.d.ts
+
+# Runtime data
+data/scheduled.json
+data/sent.json
+data/daemon.json
+data/.wwebjs_auth/
+data/.wwebjs_cache/
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
