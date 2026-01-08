@@ -85,6 +85,10 @@ wa-schedule send "<chatId>" "<time>" "<message>"
 
 # From file
 wa-schedule send "<chatId>" "<time>" --file <filename>
+
+# Skip confirmation prompt (useful for SSH/automation)
+wa-schedule send "<chatId>" "<time>" "<message>" --yes
+wa-schedule send "<chatId>" "<time>" --file <filename> --yes
 ```
 
 ### Installation
@@ -114,6 +118,7 @@ wa-schedule daemon start
 **Check what's scheduled:**
 ```bash
 wa-schedule list --pending
+wa-schedule list --failed
 ```
 
 **View sent history:**
@@ -125,10 +130,12 @@ wa-schedule list --sent
 
 ### `src/daemon/whatsapp-client.ts`
 WhatsApp Web integration:
-- Displays QR code on first run (saved to `qr-code.txt`)
+- Displays QR code on first run (saved to `qr-code.txt` with timestamps)
+- QR code includes both local date/time and ISO timestamp for debugging
 - Session persists in `data/.wwebjs_auth/`
 - Handles events: qr, authenticated, ready, disconnected, auth_failure
 - `sendMessage()` method used by message processor
+- Puppeteer timeout set to 120 seconds (configurable in constructor)
 
 ### `src/storage/messages.ts`
 Atomic JSON operations:
@@ -181,7 +188,23 @@ EMAIL_TO=notification-recipient@example.com
 6. **Shell quoting matters** - Watch for stray commands (like "clear") getting into message text
 7. **File content captured at schedule time** - Editing the file later doesn't change scheduled message
 
+## System Requirements
+
+**Minimum for reliable operation:**
+- **2 CPU cores** (Chrome/Puppeteer is CPU-intensive)
+- **2GB RAM** minimum (Chrome uses ~200-300MB)
+- Node.js >= 18.0.0
+
+**Performance notes:**
+- Smaller VPS instances (1 core, 1GB RAM) will experience timeouts
+- First message after daemon start usually succeeds, subsequent ones may timeout on underpowered servers
+- Chrome/Puppeteer requires adequate resources for browser automation
+
 ## Production Deployment
+
+### Server Deployment (Recommended for 24/7 operation)
+
+**Requirements:** 2+ CPU cores, 2GB+ RAM
 
 Use PM2 for process management:
 ```bash
@@ -190,6 +213,36 @@ pm2 start dist/daemon/index.js --name whatsapp-scheduler
 pm2 save
 pm2 startup
 ```
+
+**Linux server setup:**
+- Ubuntu/Debian requires Chrome dependencies: `sudo apt-get install -y libatk1.0-0 libgtk-3-0 libnss3 libgbm1` (see full list in troubleshooting)
+- Puppeteer downloads Chrome automatically (~100MB)
+
+### Local Deployment (Alternative for occasional use)
+
+**For once-a-day scheduling on your Mac:**
+```bash
+# Keep Mac awake while daemon runs
+caffeinate -i wa-schedule daemon start
+
+# Or in separate terminals:
+# Terminal 1:
+caffeinate -i
+
+# Terminal 2:
+wa-schedule daemon start
+```
+
+**Benefits:**
+- No server costs
+- Faster performance (local resources)
+- No timeout issues
+- Simple setup
+
+**Considerations:**
+- Mac must stay awake for scheduled messages to send
+- Good for personal/occasional use (1-2 messages per day)
+- Not suitable for critical/high-volume scheduling
 
 ## Security Notes
 

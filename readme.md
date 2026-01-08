@@ -18,9 +18,17 @@ A TypeScript CLI tool to schedule WhatsApp messages for future delivery. Schedul
 
 ## Requirements
 
+**Software:**
 - Node.js >= 18.0.0
 - WhatsApp account
 - (Optional) SMTP server for email notifications
+
+**System Resources (for server deployment):**
+- **Minimum:** 2 CPU cores, 2GB RAM
+- Chrome/Puppeteer requires adequate resources for browser automation
+- Smaller VPS instances (1 core, 1GB RAM) will experience timeout issues
+
+**Note:** For personal/occasional use, running locally on your Mac/PC is simpler and avoids resource constraints.
 
 ## Installation
 
@@ -73,6 +81,11 @@ wa-schedule daemon start
 
 On first run, you'll see a QR code. Scan it with your WhatsApp mobile app to authenticate. The session will be saved for future use.
 
+**QR Code Details:**
+- QR code is also saved to `qr-code.txt` with generation timestamp
+- Includes both local date/time and ISO timestamp for debugging
+- Useful for scanning on a different device or checking when authentication was last needed
+
 ### 3. Schedule a Message
 
 ```bash
@@ -85,9 +98,12 @@ wa-schedule send "1234567890@c.us" "in 3 hours" --file reminder.txt
 
 # Or use a full path
 wa-schedule send "1234567890@c.us" "in 3 hours" --file /path/to/message.txt
+
+# Skip confirmation prompt (useful for scripting/SSH)
+wa-schedule send "1234567890@c.us" "in 3 hours" --file reminder.txt --yes
 ```
 
-The CLI will show you the parsed time and ask for confirmation before scheduling.
+The CLI will show you the parsed time and ask for confirmation before scheduling (unless `--yes` flag is used).
 
 **Tips:**
 - Create a `txt-messages/` directory in your project root to store message files. When using `--file` with just a filename (no path), it will automatically look in this directory.
@@ -126,6 +142,9 @@ wa-schedule send <chatId> <time> <message>
 
 # From a text file
 wa-schedule send <chatId> <time> --file <path>
+
+# Skip confirmation prompt
+wa-schedule send <chatId> <time> <message> --yes
 ```
 
 **Examples:**
@@ -138,6 +157,9 @@ wa-schedule send "1234567890@c.us" "next Monday at 9am" --file announcement.txt
 
 # From file with full path
 wa-schedule send "123456789012345@g.us" "in 30 minutes" --file /path/to/message.txt
+
+# Skip confirmation (useful for scripting or SSH usage)
+wa-schedule send "1234567890@c.us" "in 1 hour" "Automated reminder" --yes
 ```
 
 **Time Format Examples:**
@@ -157,11 +179,14 @@ wa-schedule list
 # List only pending messages
 wa-schedule list --pending
 
+# List only failed messages
+wa-schedule list --failed
+
 # List only sent messages
 wa-schedule list --sent
 ```
 
-**Note:** Sent messages are stored in `data/sent.json` with full details including scheduled time, actual sent time, and message content.
+**Note:** Sent messages are stored in `data/sent.json` with full details including scheduled time, actual sent time, and message content. Failed messages remain in `data/scheduled.json` with status 'failed' after 3 retry attempts.
 
 #### List All Chats
 
@@ -284,8 +309,29 @@ EMAIL_TO=notification-recipient@example.com
 
 ## Production Deployment
 
-For production use, consider using PM2 for process management:
+### Option 1: Server Deployment (24/7 Operation)
 
+**System Requirements:**
+- 2+ CPU cores
+- 2GB+ RAM minimum
+- Linux server (VPS, dedicated, or cloud instance)
+
+**Ubuntu/Debian Setup:**
+
+First, install Chrome dependencies:
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  ca-certificates fonts-liberation libappindicator3-1 libasound2 \
+  libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 \
+  libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 \
+  libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 \
+  libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 \
+  libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 \
+  lsb-release wget xdg-utils
+```
+
+Then use PM2 for process management:
 ```bash
 # Install PM2
 npm install -g pm2
@@ -300,6 +346,38 @@ pm2 save
 pm2 startup
 ```
 
+**Note:** Smaller VPS instances (1 core, 1GB RAM) are insufficient for Chrome/Puppeteer and will experience timeout errors.
+
+### Option 2: Local Deployment (Mac/PC)
+
+**Best for:** Personal use, occasional scheduling (1-2 messages per day)
+
+**Advantages:**
+- No server costs
+- No resource constraints
+- Faster message sending
+- Simple setup
+
+**Disadvantage:** Computer must stay awake for messages to send
+
+**Setup:**
+```bash
+# Keep your Mac awake while daemon runs
+caffeinate -i wa-schedule daemon start
+
+# Or run in separate terminals:
+# Terminal 1: Keep Mac awake
+caffeinate -i
+
+# Terminal 2: Run daemon
+wa-schedule daemon start
+```
+
+**macOS Sleep Prevention:**
+- `caffeinate -i` prevents sleep while command runs
+- Press Ctrl+C to stop and allow sleep
+- Only needed while waiting for scheduled messages to send
+
 ## Troubleshooting
 
 ### Daemon won't start
@@ -313,9 +391,23 @@ pm2 startup
 
 ### Messages not sending
 - Check daemon status: `wa-schedule daemon status`
-- Verify WhatsApp is connected
+- Verify WhatsApp is connected: `wa-schedule status`
 - Check `logs/daemon.log` for errors
 - Verify chat ID format is correct
+
+### Timeout errors ("Runtime.callFunctionOn timed out")
+**Cause:** Insufficient system resources for Chrome/Puppeteer
+
+**Solutions:**
+1. **Upgrade server resources** - Minimum 2 CPU cores, 2GB RAM
+2. **Run locally instead** - Use `caffeinate -i` on your Mac (avoids resource issues)
+3. **Check server load** - Run `free -h` and `nproc` to verify resources
+4. **First message works, others timeout** - Indicates resource exhaustion; restart daemon or upgrade server
+
+**Why it happens:**
+- Chrome uses 200-300MB RAM and significant CPU
+- Small VPS instances (1 core, 1GB RAM) cannot handle browser automation reliably
+- Local machines have plenty of resources and work perfectly
 
 ### Email notifications not working
 - Verify SMTP settings in `.env`
