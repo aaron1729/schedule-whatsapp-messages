@@ -15,7 +15,8 @@ export function scheduleCommand(program: Command): void {
     .argument('<time>', 'When to send (e.g., "tomorrow at 2pm", "in 3 hours")')
     .argument('[message]', 'Message text (optional if using --file)')
     .option('-f, --file <path>', 'Read message from text file')
-    .action(async (chatId: string, timeStr: string, messageText: string | undefined, options: { file?: string }) => {
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action(async (chatId: string, timeStr: string, messageText: string | undefined, options: { file?: string; yes?: boolean }) => {
       try {
         // Get message content (from argument or file)
         let message: string | null = null;
@@ -71,11 +72,14 @@ export function scheduleCommand(program: Command): void {
         info(`Message will be sent at: ${formattedTime}`);
         console.log('');
 
-        const confirmed = await confirm('Schedule this message?');
+        // Skip confirmation if --yes flag is provided
+        if (!options.yes) {
+          const confirmed = await confirm('Schedule this message?');
 
-        if (!confirmed) {
-          console.log('Cancelled.');
-          process.exit(0);
+          if (!confirmed) {
+            console.log('Cancelled.');
+            process.exit(0);
+          }
         }
 
         // Create scheduled message
