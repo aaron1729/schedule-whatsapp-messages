@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 
+// Suppress punycode deprecation warning
+process.removeAllListeners('warning');
+process.on('warning', (warning) => {
+  if (warning.name === 'DeprecationWarning' && warning.message.includes('punycode')) {
+    return; // Ignore punycode deprecation warnings
+  }
+  console.warn(warning.stack);
+});
+
 import { WhatsAppClient } from './whatsapp-client';
 import { Scheduler } from './scheduler';
 import { saveDaemonState, removeDaemonState, updateHeartbeat, updateDaemonState } from '../storage/daemon-state';

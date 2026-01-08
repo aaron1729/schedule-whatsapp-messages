@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 
+// Suppress punycode deprecation warning
+process.removeAllListeners('warning');
+process.on('warning', (warning) => {
+  if (warning.name === 'DeprecationWarning' && warning.message.includes('punycode')) {
+    return; // Ignore punycode deprecation warnings
+  }
+  console.warn(warning.stack);
+});
+
 import { Command } from 'commander';
 import { scheduleCommand } from './commands/schedule';
 import { listCommand } from './commands/list';

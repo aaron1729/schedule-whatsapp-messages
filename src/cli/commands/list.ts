@@ -7,23 +7,46 @@ export function listCommand(program: Command): void {
     .command('list')
     .description('List scheduled or sent messages')
     .option('--pending', 'Show only pending messages')
+    .option('--failed', 'Show only failed messages')
     .option('--sent', 'Show only sent messages')
-    .action(async (options: { pending?: boolean; sent?: boolean }) => {
+    .action(async (options: { pending?: boolean; failed?: boolean; sent?: boolean }) => {
       try {
-        const showPending = options.pending || (!options.pending && !options.sent);
-        const showSent = options.sent || (!options.pending && !options.sent);
+        const showPending = options.pending || (!options.pending && !options.failed && !options.sent);
+        const showFailed = options.failed;
+        const showSent = options.sent || (!options.pending && !options.failed && !options.sent);
 
         if (showPending) {
           console.log('');
-          info('Scheduled Messages:');
+          info('Pending Messages:');
           console.log('');
 
           const scheduled = await loadScheduledMessages();
+          const pendingMessages = scheduled.filter(m => m.status === 'pending');
 
-          if (scheduled.length === 0) {
-            console.log('No scheduled messages.');
+          if (pendingMessages.length === 0) {
+            console.log('No pending messages.');
           } else {
-            const formatted = scheduled.map(formatScheduledMessage);
+            const formatted = pendingMessages.map(formatScheduledMessage);
+            printTable(formatted);
+          }
+        }
+
+        if (showFailed) {
+          if (showPending) {
+            console.log('');
+          }
+
+          console.log('');
+          info('Failed Messages:');
+          console.log('');
+
+          const scheduled = await loadScheduledMessages();
+          const failedMessages = scheduled.filter(m => m.status === 'failed');
+
+          if (failedMessages.length === 0) {
+            console.log('No failed messages.');
+          } else {
+            const formatted = failedMessages.map(formatScheduledMessage);
             printTable(formatted);
           }
         }

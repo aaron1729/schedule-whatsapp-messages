@@ -3,6 +3,7 @@ import * as qrcode from 'qrcode-terminal';
 import logger from '../utils/logger';
 import config from '../utils/config';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 
 export class WhatsAppClient {
   private client: Client;
@@ -33,9 +34,27 @@ export class WhatsAppClient {
 
   private setupEventHandlers(): void {
     // QR code for authentication
-    this.client.on('qr', (qr: string) => {
+    this.client.on('qr', async (qr: string) => {
+      const now = new Date();
+      const timestamp = now.toISOString();
+      const localDateTime = now.toLocaleString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      });
+
       logger.info('QR code received. Please scan with your WhatsApp mobile app:');
+      console.log(`\nGenerated: ${localDateTime}`);
+      console.log(`Timestamp: ${timestamp}\n`);
       qrcode.generate(qr, { small: true });
+
+      // Save QR code to file
+      await this.saveQRCodeToFile(qr, timestamp, localDateTime);
     });
 
     // Authentication successful
@@ -67,6 +86,34 @@ export class WhatsAppClient {
     this.client.on('loading_screen', (percent: number) => {
       logger.debug(`Loading WhatsApp... ${percent}%`);
     });
+  }
+
+  /**
+   * Save QR code to file with timestamp information
+   */
+  private async saveQRCodeToFile(qr: string, timestamp: string, localDateTime: string): Promise<void> {
+    try {
+      const qrFilePath = path.join(process.cwd(), 'qr-code.txt');
+      const content = `WhatsApp QR Code
+================
+
+Generated: ${localDateTime}
+Timestamp: ${timestamp}
+
+Scan this QR code with your WhatsApp mobile app to authenticate.
+
+QR Code Data:
+${qr}
+
+Note: This QR code expires after a short period. If authentication fails,
+a new QR code will be generated automatically.
+`;
+
+      await fs.writeFile(qrFilePath, content, 'utf8');
+      logger.info(`QR code saved to: ${qrFilePath}`);
+    } catch (error: any) {
+      logger.error('Failed to save QR code to file', { error: error.message });
+    }
   }
 
   /**
