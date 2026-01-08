@@ -26,6 +26,8 @@ export class WhatsAppClient {
           '--no-zygote',
           '--disable-gpu',
         ],
+        // Increase timeout for slower server environments
+        protocolTimeout: 120000, // 2 minutes (default is 30 seconds)
       },
     });
 
