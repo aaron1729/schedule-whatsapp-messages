@@ -11,6 +11,20 @@ function truncate(str: string, maxLength: number): string {
 }
 
 /**
+ * Replace newlines with a visual indicator, handling ANSI color codes properly
+ */
+function replaceNewlinesForDisplay(message: string, maxLength: number): string {
+  // First, replace newlines with a placeholder
+  const withPlaceholder = message.replace(/\n/g, '␊');
+
+  // Truncate based on visual length (without ANSI codes)
+  const truncated = truncate(withPlaceholder, maxLength);
+
+  // Replace placeholder with colored \n
+  return truncated.replace(/␊/g, chalk.red('\\n'));
+}
+
+/**
  * Format a scheduled message for table display
  */
 export function formatScheduledMessage(message: ScheduledMessage): {
@@ -25,7 +39,7 @@ export function formatScheduledMessage(message: ScheduledMessage): {
   return {
     id: message.id.substring(0, 8),
     chatId: truncate(message.chatId, 20),
-    message: truncate(message.message, 30),
+    message: replaceNewlinesForDisplay(message.message, 30),
     scheduledTime,
     status: message.status === 'failed' ? chalk.red('Failed') : chalk.yellow('Pending'),
   };
@@ -47,10 +61,18 @@ export function formatSentMessage(message: SentMessage): {
   return {
     id: message.id.substring(0, 8),
     chatId: truncate(message.chatId, 20),
-    message: truncate(message.message, 30),
+    message: replaceNewlinesForDisplay(message.message, 30),
     scheduledTime,
     sentAt,
   };
+}
+
+/**
+ * Strip ANSI escape codes to get visible string length
+ */
+function visibleLength(str: string): number {
+  // Remove ANSI escape codes
+  return str.replace(/\u001b\[[0-9;]*m/g, '').length;
 }
 
 /**
@@ -65,7 +87,7 @@ export function printTable(data: any[]): void {
   // Get column headers
   const headers = Object.keys(data[0]);
   const columnWidths = headers.map(header => {
-    const maxDataWidth = Math.max(...data.map(row => String(row[header]).length));
+    const maxDataWidth = Math.max(...data.map(row => visibleLength(String(row[header]))));
     return Math.max(header.length, maxDataWidth);
   });
 
@@ -84,7 +106,12 @@ export function printTable(data: any[]): void {
   // Print data rows
   data.forEach(row => {
     const dataRow = headers
-      .map((header, i) => String(row[header]).padEnd(columnWidths[i]))
+      .map((header, i) => {
+        const value = String(row[header]);
+        const visLen = visibleLength(value);
+        const padding = columnWidths[i] - visLen;
+        return value + ' '.repeat(Math.max(0, padding));
+      })
       .join('  ');
     console.log(dataRow);
   });

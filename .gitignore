@@ -5,6 +5,9 @@ list-chats.txt
 # User message files
 txt-messages/
 
+# Custom configs
+config-dd
+
 # claude
 .claude/
 
