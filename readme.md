@@ -170,6 +170,33 @@ wa-schedule send "1234567890@c.us" "in 1 hour" "Automated reminder" --yes
 - `"Jan 15 at 2:30pm"`
 - `"Monday at 10am"`
 
+**Special `dd` Shortcut:**
+
+For convenience, you can use the `dd` shortcut to automatically schedule from dated message files:
+
+```bash
+# Finds the latest YYYY-MM-DD-dd.txt file and uses config-dd for chat ID
+wa-schedule send dd "tomorrow at 9am"
+```
+
+**How it works:**
+1. Reads the chat ID from a `config-dd` file in the project root (gitignored)
+2. Searches `txt-messages/` for files matching pattern `YYYY-MM-DD-dd.txt`
+3. Selects the file with the latest date (e.g., `2026-01-13-dd.txt`)
+4. Validates that the scheduled time matches the file's date in Central Time
+5. Shows a confirmation if dates match, or a warning if they don't
+
+**Setup:**
+```bash
+# Create config-dd with your target chat ID
+echo "120363407522639510@g.us" > config-dd
+
+# Create dated message files
+echo "Your message content" > txt-messages/2026-01-13-dd.txt
+```
+
+This is useful for recurring scheduled messages where you prepare files ahead of time.
+
 #### List Messages
 
 ```bash
